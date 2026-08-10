@@ -17,7 +17,7 @@ HoboPages turns a domain into your own static site host. Drag a built folder int
 
 Written in Deno with no third-party dependencies.
 
-**Shipped version:** 1.0.0~ynh1
+**Shipped version:** 1.0.1~ynh1
 
 ## Screenshots
 

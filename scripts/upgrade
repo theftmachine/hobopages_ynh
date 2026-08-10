@@ -31,7 +31,7 @@ mkdir -p "$data_dir/.deno"
 #=================================================
 ynh_script_progression "Upgrading system configurations related to $app..."
 
-ynh_config_add --template=".env" --destination="$install_dir/.env"
+ynh_config_add --template="hobopages.env" --destination="$install_dir/.env"
 hobopages_fix_permissions
 
 ynh_config_add_nginx
