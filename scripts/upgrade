@@ -1,0 +1,52 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# STOP SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Stopping $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="stop" --log_path="systemd"
+
+#=================================================
+# UPGRADE THE DENO RUNTIME
+#=================================================
+ynh_script_progression "Upgrading the Deno runtime..."
+
+ynh_setup_source --dest_dir="$install_dir" --source_id="deno" --keep=".env admin_password"
+
+#=================================================
+# UPGRADE HOBOPAGES
+#=================================================
+ynh_script_progression "Upgrading $app..."
+
+hobopages_install_app_files
+
+mkdir -p "$data_dir/.deno"
+
+#=================================================
+# REAPPLY SYSTEM CONFIGURATIONS
+#=================================================
+ynh_script_progression "Upgrading system configurations related to $app..."
+
+ynh_config_add --template=".env" --destination="$install_dir/.env"
+hobopages_fix_permissions
+
+ynh_config_add_nginx
+ynh_config_add_systemd
+
+yunohost service add "$app" --description="Static site hosting with browser uploads"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --wait_until="listening on" --log_path="systemd"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Upgrade of $app completed"

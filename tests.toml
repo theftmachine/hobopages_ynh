@@ -1,0 +1,11 @@
+# Configuration for YunoHost's package_check CI.
+# See https://github.com/YunoHost/package_check
+
+test_format = 1.0
+
+[default]
+
+    # HoboPages owns the whole domain, so sub-path installs do not apply.
+    exclude = ["install.subdir", "install.private"]
+
+    args.admin_password = "Sup3rS3cr3t-Password"

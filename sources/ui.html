@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>HoboPages</title>
+<style>
+  :root {
+    --ink: #0B0F14;
+    --panel: #131A22;
+    --panel-2: #182230;
+    --rule: #22303D;
+    --text: #D6E0E8;
+    --dim: #6F8494;
+    --amber: #F0A02A;
+    --live: #5BC8B0;
+    --alert: #E2574C;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: "Helvetica Neue", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --radius: 2px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  a { color: var(--amber); }
+
+  :focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ---------------- masthead ---------------- */
+
+  header.masthead {
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 28px;
+    padding: 22px 0 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .wordmark {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .wordmark span { color: var(--amber); }
+
+  .masthead .host {
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .masthead .spacer { flex: 1; }
+
+  /* ---------------- controls ---------------- */
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 7px 13px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: border-color .12s, color .12s, background .12s;
+  }
+
+  .btn:hover:not(:disabled) { border-color: var(--amber); color: var(--amber); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #12160C;
+    font-weight: 700;
+  }
+  .btn-primary:hover:not(:disabled) { background: #ffb544; border-color: #ffb544; color: #12160C; }
+
+  .btn-danger:hover:not(:disabled) { border-color: var(--alert); color: var(--alert); }
+
+  .btn-sm { padding: 4px 9px; font-size: 12px; }
+
+  input[type=text], input[type=password] {
+    background: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 8px 11px;
+    width: 100%;
+  }
+
+  input[type=text]:focus, input[type=password]:focus {
+    border-color: var(--amber);
+    outline: none;
+  }
+
+  label.check {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 9px 0;
+    cursor: pointer;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  label.check:last-of-type { border-bottom: 0; }
+  label.check input { margin: 4px 0 0; accent-color: var(--amber); }
+  label.check .lbl { font-weight: 600; }
+  label.check .hint { display: block; color: var(--dim); font-size: 12px; font-weight: 400; }
+
+  /* ---------------- login ---------------- */
+
+  .login {
+    max-width: 380px;
+    margin: 14vh auto 0;
+    border: 1px solid var(--rule);
+    background: var(--panel);
+    padding: 26px;
+  }
+
+  .login h1 { font-family: var(--sans); font-size: 22px; text-transform: uppercase; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .login p { color: var(--dim); font-size: 12px; margin: 0 0 20px; }
+  .login .row { margin-bottom: 14px; }
+
+  /* ---------------- layout ---------------- */
+
+  .cols { display: grid; grid-template-columns: 290px 1fr; gap: 26px; align-items: start; }
+
+  @media (max-width: 820px) {
+    .cols { grid-template-columns: 1fr; }
+  }
+
+  .rail h2, .panel h2 {
+    font-family: var(--sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+
+  .site-list { border: 1px solid var(--rule); background: var(--panel); }
+
+  .site-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    padding: 11px 13px;
+    cursor: pointer;
+  }
+
+  .site-item:last-child { border-bottom: 0; }
+  .site-item:hover { background: var(--panel-2); }
+  .site-item[aria-current="true"] { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--amber); }
+
+  .site-item .nm { font-weight: 700; }
+  .site-item .meta { color: var(--dim); font-size: 11.5px; }
+
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+  .dot.live { background: var(--live); }
+  .dot.empty { background: var(--dim); }
+  .dot.off { background: var(--alert); }
+
+  .empty-note { padding: 16px 13px; color: var(--dim); font-size: 12.5px; }
+
+  .newsite { margin-top: 14px; display: flex; gap: 8px; }
+  .newsite input { flex: 1; }
+
+  /* ---------------- panel ---------------- */
+
+  .panel { border: 1px solid var(--rule); background: var(--panel); padding: 20px; margin-bottom: 20px; }
+
+  .panel-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  .panel-head h1 {
+    font-family: var(--sans);
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-weight: 800;
+  }
+
+  /* Signature: the live address bar for each site. */
+  .pathbar {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--rule);
+    background: var(--ink);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 12.5px;
+  }
+  .pathbar .host { padding: 5px 2px 5px 10px; color: var(--dim); }
+  .pathbar .sep { color: var(--rule); padding: 5px 0; }
+  .pathbar .seg { padding: 5px 10px 5px 2px; color: var(--amber); font-weight: 700; }
+  .pathbar a { text-decoration: none; display: flex; }
+
+  /* ---------------- drop bay ---------------- */
+
+  .bay {
+    border: 2px dashed var(--rule);
+    border-radius: var(--radius);
+    padding: 34px 20px;
+    text-align: center;
+    transition: border-color .12s, background .12s;
+  }
+
+  .bay.hot { border-color: var(--amber); background: rgba(240,160,42,0.06); }
+
+  .bay .big {
+    font-family: var(--sans);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .bay .sub { color: var(--dim); font-size: 12.5px; margin-bottom: 16px; }
+  .bay .picks { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .bar { height: 3px; background: var(--rule); margin-top: 16px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--amber); width: 0; transition: width .15s linear; }
+
+  .status { font-size: 12.5px; color: var(--dim); margin-top: 10px; min-height: 18px; }
+  .status.err { color: var(--alert); }
+  .status.ok { color: var(--live); }
+
+  /* ---------------- ledger ---------------- */
+
+  .ledger { border-top: 1px solid var(--rule); }
+
+  .rel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 12.5px;
+  }
+
+  .rel .mark { width: 3px; align-self: stretch; background: var(--rule); flex: none; }
+  .rel.current .mark { background: var(--live); }
+  .rel .id { font-weight: 700; }
+  .rel .facts { color: var(--dim); }
+  .rel .grow { flex: 1; }
+  .rel .note { color: var(--dim); font-style: italic; }
+
+  .tag {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 1px solid var(--live);
+    color: var(--live);
+    padding: 1px 6px;
+    border-radius: var(--radius);
+  }
+
+  .warn {
+    border-left: 3px solid var(--amber);
+    background: rgba(240,160,42,0.07);
+    padding: 9px 12px;
+    font-size: 12.5px;
+    margin-top: 12px;
+  }
+  .warn ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+  .danger-zone { border-color: rgba(226,87,76,0.4); }
+
+  .kv { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--rule); font-size: 12.5px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span:last-child { color: var(--dim); }
+
+  .hidden { display: none !important; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    background: var(--panel-2);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--amber);
+    padding: 10px 16px;
+    font-size: 13px;
+    max-width: 90vw;
+    z-index: 50;
+  }
+  .toast.err { border-left-color: var(--alert); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================= LOGIN ============================= -->
+<div id="loginView" class="hidden">
+  <div class="login">
+    <h1>Hobo<span style="color:var(--amber)">Pages</span></h1>
+    <p>Static hosting for <span id="loginHost">this server</span></p>
+    <div class="row">
+      <input type="password" id="pw" placeholder="Admin password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="loginBtn" style="width:100%">Sign in</button>
+    <div class="status" id="loginStatus"></div>
+  </div>
+</div>
+
+<!-- ============================= APP ============================= -->
+<div id="appView" class="hidden">
+  <div class="wrap">
+    <header class="masthead">
+      <h1 class="wordmark">Hobo<span>Pages</span></h1>
+      <span class="host" id="baseHost"></span>
+      <span class="spacer"></span>
+      <span class="host" id="verLabel"></span>
+      <button class="btn btn-sm" id="logoutBtn">Sign out</button>
+    </header>
+
+    <div class="cols">
+      <!-- rail -->
+      <div class="rail">
+        <h2>Sites</h2>
+        <div class="site-list" id="siteList"></div>
+        <div class="newsite">
+          <input type="text" id="newName" placeholder="new-site-name" autocomplete="off" spellcheck="false">
+          <button class="btn" id="createBtn">Add</button>
+        </div>
+        <div class="status" id="createStatus"></div>
+      </div>
+
+      <!-- detail -->
+      <div id="detail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const CHUNK_SIZE = 6 * 1024 * 1024;
+  const CONCURRENCY = 3;
+  const SKIP_DIRS = new Set(["node_modules", ".git", ".svn", ".hg", "__MACOSX", ".cache"]);
+  const SKIP_FILES = new Set([".DS_Store", "Thumbs.db", "desktop.ini"]);
+
+  let state = null;
+  let selected = null;
+  let busy = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---------------------------------------------------------------- helpers
+
+  function fmtBytes(n) {
+    if (!n) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let v = n;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return `${v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+  }
+
+  function fmtAgo(ts) {
+    const secs = Math.floor((Date.now() - ts) / 1000);
+    if (secs < 60) return "just now";
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(ts).toLocaleDateString();
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+
+  let toastTimer = null;
+  function toast(message, isError) {
+    document.querySelectorAll(".toast").forEach((t) => t.remove());
+    const el = document.createElement("div");
+    el.className = "toast" + (isError ? " err" : "");
+    el.textContent = message;
+    document.body.appendChild(el);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.remove(), 4200);
+  }
+
+  async function api(path, options = {}) {
+    const init = {
+      method: options.method || "GET",
+      headers: { "x-hobopages": "1" },
+      credentials: "same-origin",
+    };
+    if (options.body !== undefined) {
+      init.headers["content-type"] = "application/json";
+      init.body = JSON.stringify(options.body);
+    }
+    const res = await fetch(path, init);
+    if (res.status === 401) {
+      showLogin();
+      throw new Error("Session expired. Sign in again.");
+    }
+    const text = await res.text();
+    let data = null;
+    if (text) {
+      try { data = JSON.parse(text); } catch { data = null; }
+    }
+    if (!res.ok) {
+      throw new Error((data && data.error) || `Request failed (${res.status})`);
+    }
+    return data;
+  }
+
+  // ---------------------------------------------------------------- views
+
+  function showLogin() {
+    $("appView").classList.add("hidden");
+    $("loginView").classList.remove("hidden");
+    setTimeout(() => $("pw").focus(), 40);
+  }
+
+  function showApp() {
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+  }
+
+  async function refresh(keepSelection = true) {
+    state = await api("/__api/state");
+    $("baseHost").textContent = state.baseUrl.replace(/^https?:\/\//, "");
+    $("verLabel").textContent = "v" + state.version;
+    if (!keepSelection || !state.sites.some((s) => s.name === selected)) {
+      selected = state.sites.length ? state.sites[0].name : null;
+    }
+    renderRail();
+    renderDetail();
+  }
+
+  function renderRail() {
+    const list = $("siteList");
+    if (!state.sites.length) {
+      list.innerHTML = '<div class="empty-note">No sites yet. Name one below to get started.</div>';
+      return;
+    }
+    list.innerHTML = state.sites.map((site) => {
+      const cls = !site.enabled ? "off" : (site.currentRelease ? "live" : "empty");
+      const meta = site.currentRelease
+        ? `${site.fileCount} files · ${fmtBytes(site.bytes)} · ${fmtAgo(site.updatedAt)}`
+        : "nothing deployed";
+      return `<button class="site-item" data-site="${esc(site.name)}" aria-current="${site.name === selected}">
+        <div class="nm"><i class="dot ${cls}"></i>${esc(site.name)}</div>
+        <div class="meta">${esc(meta)}</div>
+      </button>`;
+    }).join("");
+    list.querySelectorAll(".site-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        if (busy) { toast("Wait for the deploy to finish.", true); return; }
+        selected = el.dataset.site;
+        renderRail();
+        renderDetail();
+      });
+    });
+  }
+
+  function renderDetail() {
+    const host = $("detail");
+    if (!selected) {
+      host.innerHTML = `<div class="panel"><h2>Getting started</h2>
+        <p style="color:var(--dim);font-size:13px;margin:0">
+          Create a site on the left, then drop the built folder of your site into the bay.
+          It goes live at ${esc(state.baseUrl)}/&lt;name&gt; the moment the upload finishes.
+        </p></div>`;
+      return;
+    }
+    const site = state.sites.find((s) => s.name === selected);
+    if (!site) { host.innerHTML = ""; return; }
+
+    const url = `${state.baseUrl}/${site.name}/`;
+    const hostLabel = state.baseUrl.replace(/^https?:\/\//, "");
+
+    host.innerHTML = `
+      <div class="panel">
+        <div class="panel-head">
+          <h1>${esc(site.name)}</h1>
+          <span class="pathbar">
+            <a href="${esc(url)}" target="_blank" rel="noopener">
+              <span class="host">${esc(hostLabel)}</span><span class="sep">/</span><span class="seg">${esc(site.name)}</span>
+            </a>
+          </span>
+          <button class="btn btn-sm" id="copyUrl">Copy URL</button>
+        </div>
+
+        <div class="bay" id="bay">
+          <div class="big">Drop your site folder here</div>
+          <div class="sub">The built output — the folder containing index.html. A .zip works too.</div>
+          <div class="picks">
+            <button class="btn btn-primary" id="pickFolder">Choose folder</button>
+            <button class="btn" id="pickZip">Choose .zip</button>
+          </div>
+          <div class="bar"><i id="progBar"></i></div>
+          <div class="status" id="deployStatus"></div>
+        </div>
+        <div id="warnBox"></div>
+      </div>
+
+      <div class="split">
+        <div class="panel">
+          <h2>Behaviour</h2>
+          <label class="check">
+            <input type="checkbox" data-flag="rewriteRootPaths" ${site.rewriteRootPaths ? "checked" : ""}>
+            <span><span class="lbl">Fix root-absolute links</span>
+            <span class="hint">Rewrites /assets/… to /${esc(site.name)}/assets/… in HTML and CSS when you deploy. Leave on unless your build already knows it lives in a sub-folder.</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-flag="refererRescue" ${site.refererRescue ? "checked" : ""}>
+            <span><span class="lbl">Rescue stray asset requests</span>
+            <span class="hint">Catches /assets/… requests made by scripts at runtime and serves them from this site.</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-flag="spaFallback" ${site.spaFallback ? "checked" : ""}>
+            <span><span class="lbl">Single-page app routing</span>
+            <span class="hint">Unknown paths serve index.html instead of a 404.</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-flag="cleanUrls" ${site.cleanUrls ? "checked" : ""}>
+            <span><span class="lbl">Clean URLs</span>
+            <span class="hint">/about serves about.html.</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-flag="enabled" ${site.enabled ? "checked" : ""}>
+            <span><span class="lbl">Serve this site</span>
+            <span class="hint">Turn off to take it offline without deleting anything.</span></span>
+          </label>
+        </div>
+
+        <div class="panel">
+          <h2>Access</h2>
+          <div class="kv"><span>Visitor password</span><span>${site.hasPassword ? "set" : "none — public"}</span></div>
+          <div style="margin-top:12px">
+            <input type="text" id="sitePw" placeholder="Set a visitor password" autocomplete="off">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-sm" id="setPw">Set password</button>
+              <button class="btn btn-sm" id="clearPw" ${site.hasPassword ? "" : "disabled"}>Remove</button>
+            </div>
+          </div>
+          <h2 style="margin-top:22px">Storage</h2>
+          <div class="kv"><span>Live release</span><span>${site.currentRelease ? esc(site.currentRelease) : "none"}</span></div>
+          <div class="kv"><span>Files</span><span>${site.fileCount}</span></div>
+          <div class="kv"><span>Size</span><span>${fmtBytes(site.bytes)}</span></div>
+          <div class="kv"><span>Releases kept</span><span>${site.releases.length} of ${state.maxReleases}</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Releases</h2>
+        ${site.releases.length ? `<div class="ledger">${site.releases.map((r) => `
+          <div class="rel ${r.id === site.currentRelease ? "current" : ""}">
+            <i class="mark"></i>
+            <span class="id">${esc(r.id)}</span>
+            <span class="facts">${fmtAgo(r.createdAt)} · ${r.fileCount} files · ${fmtBytes(r.bytes)} · ${esc(r.source)}</span>
+            ${r.note ? `<span class="note">“${esc(r.note)}”</span>` : ""}
+            <span class="grow"></span>
+            ${r.id === site.currentRelease
+              ? '<span class="tag">Live</span>'
+              : `<button class="btn btn-sm" data-rollback="${esc(r.id)}">Make live</button>
+                 <button class="btn btn-sm btn-danger" data-delrel="${esc(r.id)}">Delete</button>`}
+          </div>`).join("")}</div>`
+          : '<div class="empty-note" style="padding-left:0">Nothing deployed yet.</div>'}
+      </div>
+
+      <div class="panel danger-zone">
+        <h2>Delete site</h2>
+        <p style="color:var(--dim);font-size:12.5px;margin:0 0 12px">
+          Removes ${esc(site.name)} and every release. This cannot be undone.
+        </p>
+        <button class="btn btn-danger" id="delSite">Delete ${esc(site.name)}</button>
+      </div>`;
+
+    wireDetail(site);
+  }
+
+  // ---------------------------------------------------------------- wiring
+
+  function wireDetail(site) {
+    $("copyUrl").addEventListener("click", async () => {
+      const url = `${state.baseUrl}/${site.name}/`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast("URL copied.");
+      } catch {
+        toast(url);
+      }
+    });
+
+    document.querySelectorAll("[data-flag]").forEach((box) => {
+      box.addEventListener("change", async () => {
+        const flag = box.dataset.flag;
+        try {
+          await api(`/__api/sites/${encodeURIComponent(site.name)}`, {
+            method: "PATCH",
+            body: { [flag]: box.checked },
+          });
+          toast("Saved.");
+          await refresh();
+        } catch (err) {
+          box.checked = !box.checked;
+          toast(err.message, true);
+        }
+      });
+    });
+
+    $("setPw").addEventListener("click", async () => {
+      const value = $("sitePw").value;
+      if (value.length < 4) { toast("Use at least 4 characters.", true); return; }
+      try {
+        await api(`/__api/sites/${encodeURIComponent(site.name)}`, {
+          method: "PATCH",
+          body: { password: value },
+        });
+        toast("Visitor password set.");
+        await refresh();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    $("clearPw").addEventListener("click", async () => {
+      try {
+        await api(`/__api/sites/${encodeURIComponent(site.name)}`, {
+          method: "PATCH",
+          body: { password: null },
+        });
+        toast("Password removed — the site is public.");
+        await refresh();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    document.querySelectorAll("[data-rollback]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          await api(`/__api/sites/${encodeURIComponent(site.name)}/rollback`, {
+            method: "POST",
+            body: { releaseId: btn.dataset.rollback },
+          });
+          toast("Release is live.");
+          await refresh();
+        } catch (err) { toast(err.message, true); }
+      });
+    });
+
+    document.querySelectorAll("[data-delrel]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm(`Delete release ${btn.dataset.delrel}?`)) return;
+        try {
+          await api(
+            `/__api/sites/${encodeURIComponent(site.name)}/releases/${encodeURIComponent(btn.dataset.delrel)}`,
+            { method: "DELETE" },
+          );
+          toast("Release deleted.");
+          await refresh();
+        } catch (err) { toast(err.message, true); }
+      });
+    });
+
+    $("delSite").addEventListener("click", async () => {
+      if (!confirm(`Delete ${site.name} and all of its releases? This cannot be undone.`)) return;
+      try {
+        await api(`/__api/sites/${encodeURIComponent(site.name)}`, { method: "DELETE" });
+        toast("Site deleted.");
+        selected = null;
+        await refresh(false);
+      } catch (err) { toast(err.message, true); }
+    });
+
+    wireDeploy(site);
+  }
+
+  // ---------------------------------------------------------------- deploy
+
+  function wireDeploy(site) {
+    const bay = $("bay");
+
+    $("pickFolder").addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.webkitdirectory = true;
+      input.multiple = true;
+      input.addEventListener("change", () => {
+        const files = Array.from(input.files || []).map((file) => ({
+          path: file.webkitRelativePath || file.name,
+          file,
+        }));
+        startDeploy(site, files, false);
+      });
+      input.click();
+    });
+
+    $("pickZip").addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".zip,application/zip";
+      input.addEventListener("change", () => {
+        const file = (input.files || [])[0];
+        if (file) startDeploy(site, [{ path: "archive.zip", file }], true);
+      });
+      input.click();
+    });
+
+    ["dragenter", "dragover"].forEach((evt) => {
+      bay.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        bay.classList.add("hot");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((evt) => {
+      bay.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (evt === "dragleave" && bay.contains(e.relatedTarget)) return;
+        bay.classList.remove("hot");
+      });
+    });
+
+    bay.addEventListener("drop", async (e) => {
+      const items = Array.from(e.dataTransfer.items || []);
+      const entries = items
+        .map((item) => (item.webkitGetAsEntry ? item.webkitGetAsEntry() : null))
+        .filter(Boolean);
+
+      if (entries.length) {
+        setStatus("Reading folder…");
+        const files = [];
+        for (const entry of entries) await readEntry(entry, "", files);
+        if (!files.length) { setStatus("That folder is empty.", "err"); return; }
+        if (files.length === 1 && /\.zip$/i.test(files[0].path)) {
+          startDeploy(site, [{ path: "archive.zip", file: files[0].file }], true);
+        } else {
+          startDeploy(site, files, false);
+        }
+        return;
+      }
+
+      const dropped = Array.from(e.dataTransfer.files || []);
+      if (dropped.length === 1 && /\.zip$/i.test(dropped[0].name)) {
+        startDeploy(site, [{ path: "archive.zip", file: dropped[0] }], true);
+      } else if (dropped.length) {
+        startDeploy(site, dropped.map((f) => ({ path: f.name, file: f })), false);
+      }
+    });
+  }
+
+  function readEntry(entry, prefix, out) {
+    return new Promise((resolve) => {
+      const name = entry.name;
+      if (entry.isFile) {
+        if (SKIP_FILES.has(name) || name.startsWith("._")) return resolve();
+        entry.file((file) => {
+          out.push({ path: prefix ? `${prefix}/${name}` : name, file });
+          resolve();
+        }, () => resolve());
+        return;
+      }
+      if (entry.isDirectory) {
+        if (SKIP_DIRS.has(name)) return resolve();
+        const reader = entry.createReader();
+        const childPrefix = prefix ? `${prefix}/${name}` : name;
+        const all = [];
+        const readBatch = () => {
+          reader.readEntries(async (batch) => {
+            if (!batch.length) {
+              for (const child of all) await readEntry(child, childPrefix, out);
+              return resolve();
+            }
+            all.push(...batch);
+            readBatch();
+          }, () => resolve());
+        };
+        readBatch();
+        return;
+      }
+      resolve();
+    });
+  }
+
+  function setStatus(text, kind) {
+    const el = $("deployStatus");
+    if (!el) return;
+    el.textContent = text;
+    el.className = "status" + (kind ? " " + kind : "");
+  }
+
+  function setProgress(fraction) {
+    const bar = $("progBar");
+    if (bar) bar.style.width = `${Math.min(100, Math.round(fraction * 100))}%`;
+  }
+
+  async function startDeploy(site, files, isZip) {
+    if (busy) { toast("A deploy is already running.", true); return; }
+
+    const usable = files.filter((f) => {
+      const parts = f.path.split("/");
+      if (SKIP_FILES.has(parts[parts.length - 1])) return false;
+      if (parts[parts.length - 1].startsWith("._")) return false;
+      return !parts.slice(0, -1).some((p) => SKIP_DIRS.has(p));
+    });
+
+    if (!usable.length) { setStatus("Nothing to upload.", "err"); return; }
+    if (!isZip && !usable.some((f) => /(^|\/)index\.html$/i.test(f.path))) {
+      if (!confirm("No index.html found in that folder. Deploy anyway?")) return;
+    }
+
+    busy = true;
+    $("warnBox").innerHTML = "";
+    const totalBytes = usable.reduce((sum, f) => sum + f.file.size, 0);
+    let sent = 0;
+    setProgress(0);
+    setStatus(`Uploading ${usable.length} file${usable.length === 1 ? "" : "s"} · ${fmtBytes(totalBytes)}…`);
+
+    let deployId = null;
+    try {
+      const started = await api(`/__api/sites/${encodeURIComponent(site.name)}/deploys`, {
+        method: "POST",
+        body: { note: "" },
+      });
+      deployId = started.deployId;
+
+      const queue = usable.slice();
+      const uploadNext = async () => {
+        while (queue.length) {
+          const item = queue.shift();
+          await uploadOne(deployId, item, isZip, (n) => {
+            sent += n;
+            setProgress(totalBytes ? sent / totalBytes : 1);
+          });
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, usable.length) }, uploadNext),
+      );
+
+      setStatus("Publishing…");
+      const result = await api(`/__api/deploys/${encodeURIComponent(deployId)}/finalize`, {
+        method: "POST",
+        body: { unzip: isZip },
+      });
+
+      const warnings = result.warnings || [];
+      busy = false;
+      // refresh() re-renders the panel, so the status and notes are written after it.
+      await refresh();
+      if (warnings.length) {
+        $("warnBox").innerHTML = `<div class="warn"><strong>Notes</strong><ul>${
+          warnings.map((w) => `<li>${esc(w)}</li>`).join("")
+        }</ul></div>`;
+      }
+      setProgress(1);
+      setStatus(`Live · ${result.release.fileCount} files · ${fmtBytes(result.release.bytes)}`, "ok");
+      toast("Deployed.");
+    } catch (err) {
+      busy = false;
+      setProgress(0);
+      setStatus(err.message, "err");
+      if (deployId) {
+        api(`/__api/deploys/${encodeURIComponent(deployId)}`, { method: "DELETE" }).catch(() => {});
+      }
+    }
+  }
+
+  async function uploadOne(deployId, item, isZip, onProgress) {
+    const path = isZip ? "__hobopages_upload.zip" : item.path;
+    const size = item.file.size;
+
+    if (size === 0) {
+      await putChunk(deployId, path, 0, new Blob([]));
+      return;
+    }
+    for (let offset = 0; offset < size; offset += CHUNK_SIZE) {
+      const slice = item.file.slice(offset, Math.min(offset + CHUNK_SIZE, size));
+      await putChunk(deployId, path, offset, slice);
+      onProgress(slice.size);
+    }
+  }
+
+  async function putChunk(deployId, path, offset, blob) {
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`/__api/deploys/${encodeURIComponent(deployId)}/file`, {
+          method: "PUT",
+          headers: {
+            "x-hobopages": "1",
+            "x-file-path": encodeURIComponent(path),
+            "x-offset": String(offset),
+            "content-type": "application/octet-stream",
+          },
+          credentials: "same-origin",
+          body: blob,
+        });
+        if (res.ok) return;
+        const text = await res.text();
+        let message = `Upload failed (${res.status})`;
+        try { message = JSON.parse(text).error || message; } catch { /* keep default */ }
+        // Client errors will not be fixed by retrying.
+        if (res.status >= 400 && res.status < 500) throw new Error(message);
+        lastError = new Error(message);
+      } catch (err) {
+        lastError = err;
+        if (/Upload failed \(4/.test(err.message)) throw err;
+      }
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+    throw lastError || new Error("Upload failed.");
+  }
+
+  // ---------------------------------------------------------------- boot
+
+  $("loginBtn").addEventListener("click", doLogin);
+  $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+
+  async function doLogin() {
+    const status = $("loginStatus");
+    status.className = "status";
+    status.textContent = "Checking…";
+    try {
+      await api("/__api/login", { method: "POST", body: { password: $("pw").value } });
+      $("pw").value = "";
+      status.textContent = "";
+      showApp();
+      await refresh(false);
+    } catch (err) {
+      status.className = "status err";
+      status.textContent = err.message;
+    }
+  }
+
+  $("logoutBtn").addEventListener("click", async () => {
+    await api("/__api/logout", { method: "POST" }).catch(() => {});
+    showLogin();
+  });
+
+  $("createBtn").addEventListener("click", createSite);
+  $("newName").addEventListener("keydown", (e) => { if (e.key === "Enter") createSite(); });
+
+  async function createSite() {
+    const status = $("createStatus");
+    const name = $("newName").value.trim().toLowerCase();
+    status.className = "status";
+    if (!name) { status.className = "status err"; status.textContent = "Give the site a name."; return; }
+    try {
+      await api("/__api/sites", { method: "POST", body: { name } });
+      $("newName").value = "";
+      status.textContent = "";
+      selected = name;
+      await refresh();
+      toast(`Created ${name}.`);
+    } catch (err) {
+      status.className = "status err";
+      status.textContent = err.message;
+    }
+  }
+
+  (async () => {
+    try {
+      const info = await fetch("/__api/state", {
+        headers: { "x-hobopages": "1" },
+        credentials: "same-origin",
+      });
+      if (info.status === 401) {
+        const meta = await fetch("/__api/hello").then((r) => r.json()).catch(() => null);
+        if (meta) $("loginHost").textContent = meta.baseUrl.replace(/^https?:\/\//, "");
+        showLogin();
+        return;
+      }
+      state = await info.json();
+      showApp();
+      await refresh(false);
+    } catch {
+      showLogin();
+    }
+  })();
+})();
+</script>
+</body>
+</html>

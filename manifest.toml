@@ -1,0 +1,75 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "hobopages"
+name = "HoboPages"
+description.en = "Host static sites, uploaded straight from your browser"
+description.fr = "Hébergez des sites statiques, téléversés depuis votre navigateur"
+
+version = "1.0.0~ynh1"
+
+maintainers = ["DizzyHobo"]
+
+[upstream]
+license = "MIT"
+code = "https://github.com/DizzyHobo/hobopages_ynh"
+
+[integration]
+yunohost = ">= 12.0.9"
+helpers_version = "2.1"
+# Deno publishes Linux builds for these two architectures only.
+architectures = ["amd64", "arm64"]
+multi_instance = true
+
+ldap = false
+sso = false
+
+disk = "150M"
+ram.build = "50M"
+ram.runtime = "100M"
+
+[install]
+
+    [install.domain]
+    type = "domain"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+    help.en = "Leave this as 'visitors'. The sites you publish need to be reachable by anyone; the admin interface is protected by its own password, set below."
+    help.fr = "Laissez « visitors ». Les sites publiés doivent être accessibles à tous ; l'interface d'administration est protégée par son propre mot de passe, défini ci-dessous."
+
+    [install.admin_password]
+    type = "password"
+    ask.en = "Choose a password for the HoboPages admin interface"
+    ask.fr = "Choisissez un mot de passe pour l'interface d'administration de HoboPages"
+    help.en = "You will use this to sign in and upload sites. It is stored in a root-only file on the server, not in the app settings."
+    help.fr = "Il servira à vous connecter et à téléverser des sites. Il est stocké dans un fichier accessible uniquement à root."
+
+[resources]
+
+    [resources.sources]
+
+        # The Deno runtime. The app itself ships inside this package (sources/).
+        [resources.sources.deno]
+        amd64.url = "https://github.com/denoland/deno/releases/download/v2.1.4/deno-x86_64-unknown-linux-gnu.zip"
+        amd64.sha256 = "54a81939cccb2af114c4d0a68a554cf4a04b1f08728e70f663f83781de19d785"
+        arm64.url = "https://github.com/denoland/deno/releases/download/v2.1.4/deno-aarch64-unknown-linux-gnu.zip"
+        arm64.sha256 = "93ad8efe6f60da8566652dfd39cf2a23cb0e35d8c6d6faac7392a917d2b50039"
+        format = "zip"
+        in_subdir = false
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+    subdirs = ["sites", "tmp"]
+
+    [resources.ports]
+
+    [resources.permissions]
+    main.url = "/"
+    # HoboPages does its own authentication; the SSO must not inject headers.
+    main.auth_header = false

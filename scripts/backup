@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# DECLARE DATA AND CONF FILES TO BACK UP
+#=================================================
+ynh_print_info "Declaring files to be backed up..."
+
+ynh_backup "$install_dir"
+
+# Published sites and their release history. Skipped automatically during the
+# safety backup taken before an upgrade.
+ynh_backup "$data_dir"
+
+ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_backup "/etc/systemd/system/$app.service"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_print_info "Backup script completed for $app. (YunoHost will then actually copy those files to the archive)."

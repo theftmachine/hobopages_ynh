@@ -1,0 +1,38 @@
+#!/bin/bash
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# RESTORE ALL FILES
+#=================================================
+ynh_script_progression "Restoring $app..."
+
+ynh_restore_everything
+
+chmod +x "$install_dir/deno"
+mkdir -p "$data_dir/.deno"
+hobopages_fix_permissions
+
+#=================================================
+# REINSTALL SYSTEM CONFIGURATIONS
+#=================================================
+ynh_script_progression "Restoring system configurations related to $app..."
+
+systemctl daemon-reload
+
+yunohost service add "$app" --description="Static site hosting with browser uploads"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --wait_until="listening on" --log_path="systemd"
+
+ynh_systemctl --service=nginx --action=reload
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Restoration completed for $app"

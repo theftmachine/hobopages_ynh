@@ -1,0 +1,21 @@
+{
+  "name": "hobopages",
+  "version": "1.0.0",
+  "exports": "./sources/server.ts",
+  "tasks": {
+    "test": "deno run -A test.ts",
+    "check": "deno check sources/server.ts test.ts",
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env sources/server.ts"
+  },
+  "fmt": {
+    "include": ["sources/", "test.ts"],
+    "exclude": ["sources/ui.html"]
+  },
+  "lint": {
+    "include": ["sources/", "test.ts"]
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.window", "dom"]
+  }
+}

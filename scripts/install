@@ -1,0 +1,46 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# INSTALL THE DENO RUNTIME
+#=================================================
+ynh_script_progression "Installing the Deno runtime..."
+
+ynh_setup_source --dest_dir="$install_dir" --source_id="deno"
+
+#=================================================
+# INSTALL HOBOPAGES
+#=================================================
+ynh_script_progression "Installing $app..."
+
+hobopages_install_app_files
+hobopages_write_password_file "$admin_password"
+
+mkdir -p "$data_dir/.deno"
+
+#=================================================
+# SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Adding system configurations related to $app..."
+
+ynh_config_add --template=".env" --destination="$install_dir/.env"
+hobopages_fix_permissions
+
+ynh_config_add_nginx
+ynh_config_add_systemd
+
+yunohost service add "$app" --description="Static site hosting with browser uploads"
+
+#=================================================
+# START THE SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --wait_until="listening on" --log_path="systemd"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+ynh_script_progression "Installation of $app completed"

@@ -1,0 +1,46 @@
+[Unit]
+Description=HoboPages static site host
+Documentation=https://github.com/DizzyHobo/hobopages_ynh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__
+
+Environment="DENO_DIR=__DATA_DIR__/.deno"
+Environment="DENO_NO_UPDATE_CHECK=1"
+EnvironmentFile=__INSTALL_DIR__/.env
+
+ExecStart=__INSTALL_DIR__/deno run \
+    --allow-net=127.0.0.1:__PORT__ \
+    --allow-read=__INSTALL_DIR__,__DATA_DIR__ \
+    --allow-write=__DATA_DIR__ \
+    --allow-env \
+    __INSTALL_DIR__/src/server.ts
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=__APP__
+
+# Hardening. ProtectHome must stay off: the data directory lives under
+# /home/yunohost.app/.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=full
+ProtectHome=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
