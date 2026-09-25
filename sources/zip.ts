@@ -140,10 +140,10 @@ function rangeStream(
   file: Deno.FsFile,
   start: number,
   length: number,
-): ReadableStream<Uint8Array<ArrayBuffer>> {
+): ReadableStream<Uint8Array> {
   let position = start;
   let remaining = length;
-  return new ReadableStream<Uint8Array<ArrayBuffer>>({
+  return new ReadableStream<Uint8Array>({
     async pull(controller) {
       if (remaining <= 0) {
         controller.close();

@@ -11,13 +11,24 @@ HoboPages turns a domain into your own static site host. Drag a built folder int
 - **Browser uploads.** Drop a folder or a `.zip`. Uploads are chunked, so file size is never a problem.
 - **Many sites, one domain.** Each site lives at its own path.
 - **Root-absolute links are fixed automatically.** A build that expects to sit at a domain root still works: links in HTML and CSS are rewritten at deploy time, and stray runtime asset requests are recovered from the `Referer` header.
-- **Atomic deploys and rollback.** A release is staged in full then switched over, so visitors never see a half-uploaded site. The last ten releases are kept and any can be made live in one click.
+- **Atomic deploys and rollback.** A build is staged in full then switched over, so visitors never see a half-uploaded site. By default the previous build is kept so you can roll back in one click; adjust per site from 1 to 20.
+- **Small footprint by design.** Old builds are pruned automatically, and deploys are refused before they can fill the disk, leaving a configurable margin (2 GB by default) free for everything else.
 - **A real static server.** ETag and conditional requests, range requests for audio and video, gzip for text, immutable caching for content-hashed filenames, single-page-app routing, clean URLs and custom 404 pages.
 - **Per-site visitor passwords** and an on/off switch.
 
 Written in Deno with no third-party dependencies.
 
-**Shipped version:** 1.0.1~ynh1
+**Shipped version:** 1.2.0~ynh1
+
+## New in 1.2.0
+
+Custom-key WebRTC room signalling for The Last Table v0.6.0, at `/<site>/__rooms`. Each site has its own room namespace. Keys accept 3–32 letters/numbers and ignore case. Existing visitor passwords and enabled settings protect the endpoint; changing either closes its active room sessions. Rooms are bounded, rate limited and cleared when hosts disconnect.
+
+Nginx forwards WebSocket upgrades on that route. No extra process, port, dependency, environment variable or persistent database is added. The shared protocol is `sources/rooms.js`, and the Deno adapter is `sources/room-socket.ts`.
+
+Also fixes weak ETag comparison, HEAD compression headers, and typed-array annotations incompatible with the package's pinned Deno 2.1.4 runtime. The compression test now reads the wire because Deno fetch strips encoding headers after decompression.
+
+**For this local package, use the upgrade instructions in [doc/POKER_ROOMS.md](doc/POKER_ROOMS.md). The source has not been published to the upstream GitHub URL below.**
 
 ## Screenshots
 
@@ -63,7 +74,7 @@ The application itself lives in `sources/` and is copied into the install direct
 
 ```bash
 deno task check     # type-check
-deno task test      # 86 integration assertions against a live instance
+deno task test      # 125 HTTP/storage assertions plus room lifecycle tests
 deno task start     # run locally
 ```
 

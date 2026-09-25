@@ -1,21 +1,36 @@
 {
   "name": "hobopages",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "exports": "./sources/server.ts",
   "tasks": {
-    "test": "deno run -A test.ts",
-    "check": "deno check sources/server.ts test.ts",
+    "test": "deno run -A test.ts && deno run -A test-retention.ts && deno test test-rooms.ts",
+    "check": "deno check sources/server.ts test.ts test-retention.ts test-rooms.ts",
     "start": "deno run --allow-net --allow-read --allow-write --allow-env sources/server.ts"
   },
   "fmt": {
-    "include": ["sources/", "test.ts"],
-    "exclude": ["sources/ui.html"]
+    "include": [
+      "sources/",
+      "test.ts",
+      "test-retention.ts",
+      "test-rooms.ts"
+    ],
+    "exclude": [
+      "sources/ui.html"
+    ]
   },
   "lint": {
-    "include": ["sources/", "test.ts"]
+    "include": [
+      "sources/",
+      "test.ts",
+      "test-retention.ts",
+      "test-rooms.ts"
+    ]
   },
   "compilerOptions": {
     "strict": true,
-    "lib": ["deno.window", "dom"]
+    "lib": [
+      "deno.window",
+      "dom"
+    ]
   }
 }

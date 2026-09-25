@@ -2,6 +2,7 @@
 // A small static-site host: upload a built folder, serve it at /<site>.
 
 import {
+  clampReleases,
   type Config,
   defaultSite,
   loadConfig,
@@ -18,6 +19,9 @@ import {
 } from "./core.ts";
 import { DeployError, DeployManager, walk } from "./deploy.ts";
 import { resolvePath, serveFile } from "./static.ts";
+import { diskInfo } from "./disk.ts";
+import { RoomService } from "./rooms.js";
+import { openRoomSocket } from "./room-socket.ts";
 
 const SESSION_COOKIE = "hobopages_session";
 
@@ -112,6 +116,8 @@ class LoginThrottle {
 // ---------------------------------------------------------------------------
 
 export class HoboPages {
+  private rooms = new RoomService();
+  private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
   private storage: Storage;
   private deploys: DeployManager;
   private throttle = new LoginThrottle();
@@ -121,7 +127,7 @@ export class HoboPages {
 
   constructor(private config: Config) {
     this.storage = new Storage(config.dataDir);
-    this.deploys = new DeployManager(this.storage, config.maxReleases);
+    this.deploys = new DeployManager(this.storage, config.diskReserveBytes);
   }
 
   async init(): Promise<void> {
@@ -135,10 +141,16 @@ export class HoboPages {
 
     await this.deploys.cleanupStale(0);
 
-    setInterval(() => {
+    this.maintenanceTimer = setInterval(() => {
       this.throttle.sweep();
-      this.deploys.cleanupStale().catch(() => {});
+      this.deploys.cleanupStale().catch(() => console.error({ event: "stale-upload-cleanup-failed" }));
     }, 30 * 60 * 1000);
+  }
+
+  close(): void {
+    if (this.maintenanceTimer !== null) clearInterval(this.maintenanceTimer);
+    this.maintenanceTimer = null;
+    this.rooms.close();
   }
 
   serve(): Deno.HttpServer {
@@ -270,10 +282,13 @@ export class HoboPages {
     }
 
     if (path === "/state" && req.method === "GET") {
+      const disk = await diskInfo(this.config.dataDir);
       return json({
         version: VERSION,
         baseUrl: this.config.baseUrl,
-        maxReleases: this.config.maxReleases,
+        defaultMaxReleases: this.config.defaultMaxReleases,
+        diskReserveBytes: this.config.diskReserveBytes,
+        disk,
         sites: this.storage.list().map((site) => this.publicSite(site)),
       });
     }
@@ -313,10 +328,12 @@ export class HoboPages {
       spaFallback: site.spaFallback,
       refererRescue: site.refererRescue,
       cleanUrls: site.cleanUrls,
+      maxReleases: site.maxReleases,
       enabled: site.enabled,
       hasPassword: site.password !== null,
       fileCount: current?.fileCount ?? 0,
       bytes: current?.bytes ?? 0,
+      totalBytes: site.releases.reduce((sum, r) => sum + r.bytes, 0),
     };
   }
 
@@ -331,7 +348,7 @@ export class HoboPages {
       return errorJson(`A site called "${name}" already exists.`, 409);
     }
     await this.storage.update((store) => {
-      store.sites[name] = defaultSite(name);
+      store.sites[name] = defaultSite(name, this.config.defaultMaxReleases);
     });
     await Deno.mkdir(`${this.storage.siteDir(name)}/releases`, {
       recursive: true,
@@ -363,6 +380,13 @@ export class HoboPages {
             target[key] = body[key] as boolean;
           }
         }
+        if ("maxReleases" in body) {
+          const value = Number(body.maxReleases);
+          if (!Number.isFinite(value)) {
+            throw new DeployError("Releases to keep must be a number.");
+          }
+          target.maxReleases = clampReleases(value);
+        }
         if ("password" in body) {
           const value = body.password;
           if (value === null) {
@@ -375,13 +399,20 @@ export class HoboPages {
         }
         target.updatedAt = Date.now();
       });
-      return json({ site: this.publicSite(this.storage.get(name)!) });
+      if (body.enabled === false || "password" in body) this.rooms.closeScope(name);
+      // Lowering the retention limit should free the space straight away.
+      const pruned = await this.deploys.prune(name);
+      return json({
+        site: this.publicSite(this.storage.get(name)!),
+        pruned: pruned.length,
+      });
     }
 
     if (rest === "" && req.method === "DELETE") {
       await this.storage.update((store) => {
         delete store.sites[name];
       });
+      this.rooms.closeScope(name);
       await Deno.remove(this.storage.siteDir(name), { recursive: true })
         .catch(() => {});
       return json({ ok: true });
@@ -390,6 +421,14 @@ export class HoboPages {
     if (rest === "/deploys" && req.method === "POST") {
       const body = await readJson(req);
       const note = typeof body.note === "string" ? body.note.slice(0, 200) : "";
+
+      // Refuse before a single byte is uploaded when there is not room.
+      const declared = Number(body.totalBytes);
+      if (Number.isFinite(declared) && declared > 0) {
+        const problem = await this.deploys.spaceCheck(declared);
+        if (problem) return errorJson(problem, 507);
+      }
+
       const session = await this.deploys.begin(name, note);
       return json({ deployId: session.id }, 201);
     }
@@ -463,6 +502,8 @@ export class HoboPages {
         );
       }
 
+      await this.deploys.guardSpaceDuringUpload(session);
+
       const written = await this.deploys.writeChunk(
         session,
         relPath,
@@ -524,6 +565,10 @@ export class HoboPages {
           `${url.origin}${url.pathname}/${url.search}`,
           301,
         );
+      }
+
+      if (segments.length === 2 && segments[1] === "__rooms") {
+        return openRoomSocket(req, siteName, this.config.baseUrl, this.rooms);
       }
 
       const root = this.storage.currentDir(site)!;

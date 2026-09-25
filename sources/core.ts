@@ -1,7 +1,7 @@
 // HoboPages — core: config, storage, auth, path safety, zip, rewriting.
 // Deno 2.x. No third-party dependencies.
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.2.0";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -13,7 +13,8 @@ export interface Config {
   port: number;
   adminPassword: string;
   baseUrl: string;
-  maxReleases: number;
+  defaultMaxReleases: number;
+  diskReserveBytes: number;
   cookieSecure: boolean;
   sessionHours: number;
   maxUploadBytes: number;
@@ -74,7 +75,11 @@ export function loadConfig(): Config {
     port: envInt("HOBOPAGES_PORT", 8787),
     adminPassword,
     baseUrl,
-    maxReleases: envInt("HOBOPAGES_MAX_RELEASES", 10),
+    defaultMaxReleases: envInt("HOBOPAGES_MAX_RELEASES", 2),
+    diskReserveBytes: envInt(
+      "HOBOPAGES_DISK_RESERVE_BYTES",
+      2 * 1024 * 1024 * 1024,
+    ),
     cookieSecure: envBool(
       "HOBOPAGES_COOKIE_SECURE",
       baseUrl.startsWith("https"),
@@ -111,6 +116,11 @@ export interface Site {
   refererRescue: boolean;
   /** Serve clean URLs: /about resolves to about.html. */
   cleanUrls: boolean;
+  /**
+   * How many releases to keep for this site, including the live one.
+   * 2 means "the current build and the one before it".
+   */
+  maxReleases: number;
   /** When set, the site is behind HTTP basic auth with this password. */
   password: string | null;
   enabled: boolean;
@@ -144,7 +154,18 @@ export function validateSiteName(name: string): string | null {
   return null;
 }
 
-export function defaultSite(name: string): Site {
+export const MIN_RELEASES = 1;
+export const MAX_RELEASES_LIMIT = 20;
+
+export function clampReleases(value: number): number {
+  if (!Number.isFinite(value)) return 2;
+  return Math.min(
+    MAX_RELEASES_LIMIT,
+    Math.max(MIN_RELEASES, Math.floor(value)),
+  );
+}
+
+export function defaultSite(name: string, maxReleases = 2): Site {
   const now = Date.now();
   return {
     name,
@@ -156,6 +177,7 @@ export function defaultSite(name: string): Site {
     spaFallback: false,
     refererRescue: true,
     cleanUrls: true,
+    maxReleases: clampReleases(maxReleases),
     password: null,
     enabled: true,
   };

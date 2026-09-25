@@ -1,6 +1,7 @@
 // HoboPages — deploy pipeline.
 
 import {
+  clampReleases,
   isJunkPath,
   type Release,
   rewriteCss,
@@ -10,6 +11,7 @@ import {
   type Storage,
 } from "./core.ts";
 import { extractZip, ZipError } from "./zip.ts";
+import { checkSpaceFor } from "./disk.ts";
 
 export const ARCHIVE_NAME = "__hobopages_upload.zip";
 
@@ -20,6 +22,8 @@ export interface DeploySession {
   note: string;
   createdAt: number;
   bytesReceived: number;
+  /** Timestamp of the last free-space check, to avoid running df per chunk. */
+  lastSpaceCheck: number;
 }
 
 export class DeployError extends Error {
@@ -139,8 +143,22 @@ export class DeployManager {
 
   constructor(
     private storage: Storage,
-    private maxReleases: number,
+    private diskReserveBytes: number,
   ) {}
+
+  /**
+   * Refuse an upload that would eat into the reserved free space.
+   * Returns an error message, or null when there is room (or when free space
+   * cannot be determined).
+   */
+  async spaceCheck(incomingBytes: number): Promise<string | null> {
+    const verdict = await checkSpaceFor(
+      this.storage.dataDir,
+      incomingBytes,
+      this.diskReserveBytes,
+    );
+    return verdict.ok ? null : verdict.message;
+  }
 
   /** Remove staging directories left behind by a crash or abandoned upload. */
   async cleanupStale(maxAgeMs = 2 * 60 * 60 * 1000): Promise<void> {
@@ -180,6 +198,7 @@ export class DeployManager {
       note,
       createdAt: Date.now(),
       bytesReceived: 0,
+      lastSpaceCheck: Date.now(),
     };
     this.sessions.set(id, session);
     return session;
@@ -194,6 +213,21 @@ export class DeployManager {
     if (!session) return;
     this.sessions.delete(id);
     await Deno.remove(session.dir, { recursive: true }).catch(() => {});
+  }
+
+  /**
+   * Guard against the disk filling mid-upload, whether because the browser
+   * under-declared the size or another process consumed the space. Throttled
+   * so df runs at most once every few seconds per deploy.
+   */
+  async guardSpaceDuringUpload(session: DeploySession): Promise<void> {
+    const now = Date.now();
+    if (now - session.lastSpaceCheck < 4000) return;
+    session.lastSpaceCheck = now;
+    const problem = await this.spaceCheck(0);
+    if (problem) {
+      throw new DeployError(problem, 507);
+    }
   }
 
   /** Write a chunk of an uploaded file at the given byte offset. */
@@ -344,20 +378,31 @@ export class DeployManager {
       target.updatedAt = Date.now();
     });
 
-    await this.prune(site.name);
+    const pruned = await this.prune(site.name);
+    if (pruned.length > 0) {
+      warnings.push(
+        `Removed ${pruned.length} old release${
+          pruned.length === 1 ? "" : "s"
+        } to save space.`,
+      );
+    }
     return { release, warnings };
   }
 
-  /** Drop old releases beyond the retention limit, never the live one. */
-  async prune(siteName: string): Promise<void> {
+  /**
+   * Drop old releases beyond this site's retention limit. The live release is
+   * always kept, even when it is older than the ones being discarded.
+   */
+  async prune(siteName: string): Promise<string[]> {
     const toDelete = await this.storage.update((store) => {
       const site = store.sites[siteName];
       if (!site) return [] as string[];
+      const limit = clampReleases(site.maxReleases);
       const keep: Release[] = [];
       const drop: string[] = [];
       for (const release of site.releases) {
         if (
-          release.id === site.currentRelease || keep.length < this.maxReleases
+          release.id === site.currentRelease || keep.length < limit
         ) {
           keep.push(release);
         } else {
@@ -373,5 +418,6 @@ export class DeployManager {
         recursive: true,
       }).catch(() => {});
     }
+    return toDelete;
   }
 }

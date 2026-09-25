@@ -373,10 +373,31 @@ section("Serving behaviour");
   const gz = await fetch(`${BASE}/portfolio/notes.txt`, {
     headers: { "accept-encoding": "gzip" },
   });
+  // Read the wire directly: fetch removes content-encoding when decompressing.
+  const conn = await Deno.connect({ hostname: "127.0.0.1", port: PORT });
+  let wire = "";
+  try {
+    const request = new TextEncoder().encode(
+      "GET /portfolio/notes.txt HTTP/1.1\r\nHost: 127.0.0.1\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n",
+    );
+    let sent = 0;
+    while (sent < request.length) {
+      sent += await conn.write(request.subarray(sent));
+    }
+    const buffer = new Uint8Array(8192);
+    const decoder = new TextDecoder();
+    while (!wire.includes("\r\n\r\n")) {
+      const count = await conn.read(buffer);
+      if (count === null) break;
+      wire += decoder.decode(buffer.subarray(0, count));
+    }
+  } finally {
+    conn.close();
+  }
   check(
     "text compressed",
-    gz.headers.get("content-encoding") === "gzip",
-    String(gz.headers.get("content-encoding")),
+    /content-encoding: gzip/i.test(wire),
+    wire.split("\r\n\r\n")[0],
   );
   const gzBody = await gz.text();
   check(

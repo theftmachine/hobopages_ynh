@@ -160,7 +160,7 @@ function fileRangeStream(
   file: Deno.FsFile,
   start: number,
   length: number,
-): ReadableStream<Uint8Array<ArrayBuffer>> {
+): ReadableStream<Uint8Array> {
   let position = start;
   let remaining = length;
   let closed = false;
@@ -172,7 +172,7 @@ function fileRangeStream(
     } catch { /* already closed */ }
   };
 
-  return new ReadableStream<Uint8Array<ArrayBuffer>>({
+  return new ReadableStream<Uint8Array>({
     async pull(controller) {
       if (remaining <= 0) {
         closeOnce();
@@ -230,12 +230,13 @@ export async function serveFile(
     "vary": "Accept-Encoding",
   });
   if (lastModified) headers.set("last-modified", lastModified);
+  if (useGzip) headers.set("content-encoding", "gzip");
 
   // Conditional requests.
   const ifNoneMatch = req.headers.get("if-none-match");
   if (ifNoneMatch) {
     const tags = ifNoneMatch.split(",").map((t) => t.trim());
-    if (tags.includes(etag) || tags.includes("*")) {
+    if (tags.some((tag) => tag === "*" || tag.replace(/^W\//, "") === etag)) {
       return new Response(null, { status: 304, headers });
     }
   } else {

@@ -18,6 +18,7 @@ ExecStart=__INSTALL_DIR__/deno run \
     --allow-net=127.0.0.1:__PORT__ \
     --allow-read=__INSTALL_DIR__,__DATA_DIR__ \
     --allow-write=__DATA_DIR__ \
+    --allow-run=/usr/bin/df \
     --allow-env \
     __INSTALL_DIR__/src/server.ts
 
