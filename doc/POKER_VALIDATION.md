@@ -1,27 +1,20 @@
-# Validation — The Last Table v0.6.0 / HoboPages 1.2.0
+# Validation — The Last Table v0.7.0 / HoboPages 1.3.0
 
 Completed 25 September 2026.
 
 ## Passed
 
-- 26 game tests: poker rules, 1,000 simulated hands with chip conservation, hidden-card snapshots, scene transforms, UI handlers, whitespace/case handling, room-key validation, duplicate/full rooms, key reuse, isolation, signalling direction, cancellation, stale callbacks, disconnect cleanup and ICE validation.
-- All 140 bundled character assets parse and contain the expected rig. Required assets are present.
-- HoboPages: 86 existing HTTP/deployment/auth assertions and 39 retention/disk/migration assertions; all pass with its pinned Deno 2.1.4 runtime.
-- Two new Deno room-service tests pass with resource sanitization (no leaked test timers).
-- Real Deno/WebSocket integration passes: published-site routing, independent room namespaces, signalling, rejected foreign origins, visitor passwords, disabled sites and key release.
-- Strict TypeScript checks pass for the new annotated JavaScript networking/room-service modules. Deno checks pass for the server and new tests.
-- YunoHost shell script syntax checks pass.
-- Actual game rendered in headless Chromium at 320×740, 360×740 and 740×360. Dialog boundaries fit all viewports; typed spaces are blocked and pasted whitespace/capitals are normalized. Duplicate-room errors leave the menu intact and restore the controls.
-- Browser-to-Deno host/join acknowledgements and WebRTC offer/answer exchange observed with the real game code.
+- 28 game tests: poker rules, 1,000 bot hands, hidden-card snapshots, UI, whitespace/case handling, scene transforms, room limits/isolation, relay direction, authenticated sender IDs, host acceptance, cancellation, stale callbacks, backpressure cleanup and upgrade compatibility.
+- Six-player look traffic simulation: five guests each send 80 updates, rebroadcast to all five guests, without exceeding relay limits. Guests cannot send state snapshots or relay directly to other guests.
+- HoboPages pinned Deno 2.1.4: 86 HTTP/deployment/auth assertions, 39 retention/disk/migration assertions, and two room-service tests pass.
+- Real Deno integration: published-site rooms, relayed private messages, namespaces, foreign-origin rejection, visitor passwords, access changes and disabled sites.
+- Full game in two independent Chromium browser contexts through the real Deno server: create, case-insensitive duplicate rejection, join, private card snapshots, guest action reflected in both players, host departure and room-key reuse. No uncaught browser errors.
+- Room dialog fits 320×740, 360×740 and 740×360. Typed spaces are blocked; pasted whitespace is removed.
+- Strict TypeScript checks pass for networking/room-service JavaScript; Deno server checks and YunoHost shell syntax checks pass.
+- The 140 character assets were validated in the preceding release and are unchanged.
 
-## Limits requiring a live check
+## Remaining deployment checks
 
-A complete two-device WebRTC gameplay session could not be verified here. The sandbox's headless browser produced no ICE candidates (even for local-only tests); the full Chromium process was blocked from creating a required socket. The offer/answer exchange completed, then the client timed out and cleaned up. Unit tests cover data-channel dispatch and lifecycle with test peers, but do not replace live cross-device verification.
+This update has not been deployed to your live server. No physical Android device or actual YunoHost/Nginx deployment was available. Install both packages, reload both devices, and verify a live session. Tests used local HTTP/WebSockets; production uses HTTPS/WSS through your existing proxy.
 
-No YunoHost instance, live Nginx proxy, Android device, public STUN/TURN relay or live user server was available. The supplied YunoHost upgrade has not been deployed or tested on a real YunoHost runner. Confirm host/join gameplay on two devices after installing both updates; restrictive networks may require TURN credentials.
-
-## Additional fixes found during validation
-
-HoboPages' pinned Deno compiler predates generic typed-array annotations. The streaming functions now use the compatible Uint8Array form. Weak If-None-Match validators now match their equivalent strong tags, avoiding unnecessary file transfers. HEAD responses expose the selected compression encoding. The gzip test inspects raw response headers rather than headers already stripped by fetch's automatic decompression.
-
-The single-field input also handles multi-character insertions containing whitespace (including mobile keyboard replacements) without discarding the entire insertion.
+The host still owns the game and must remain connected. Server restarts close rooms. The server now forwards gameplay, including each player's individually addressed card snapshot. No WebRTC or TURN service is used.

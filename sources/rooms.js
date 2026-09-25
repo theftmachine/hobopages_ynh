@@ -1,6 +1,6 @@
 // @ts-check
 /** @typedef {{send: (message: string) => void, close: (code: number, reason: string) => void}} Transport */
-/** @typedef {{readonly id: string, readonly scope: string, readonly transport: Transport, room: string | null, start: number, count: number, timer: ReturnType<typeof setTimeout> | null}} Client */
+/** @typedef {{readonly id: string, readonly scope: string, readonly transport: Transport, room: string | null, ready: boolean, bytes: number, start: number, count: number, timer: ReturnType<typeof setTimeout> | null}} Client */
 /** @typedef {{readonly host: string, readonly code: string, readonly members: Set<string>}} Room */
 
 export class RoomError extends Error {
@@ -48,6 +48,8 @@ export class RoomService {
       room: null,
       start: Date.now(),
       count: 0,
+      bytes: 0,
+      ready: false,
       timer: setTimeout(
         () => this.drop(id, 1008, "Choose a room within 15 seconds."),
         15000,
@@ -64,13 +66,20 @@ export class RoomService {
     if (Date.now() - client.start > 10000) {
       client.start = Date.now();
       client.count = 0;
+      client.bytes = 0;
     }
-    if (++client.count > 80) {
+    const hosting = client.room && this.rooms.get(client.room)?.host === id;
+    if (++client.count > (hosting ? 3000 : client.room ? 300 : 20)) {
       this.drop(id, 1008, "Too many requests.");
       return;
     }
     if (typeof raw !== "string" || raw.length > 65536) {
       this.drop(id, 1009, "Invalid message size.");
+      return;
+    }
+    client.bytes += raw.length * 2;
+    if (client.bytes > (hosting ? 8000000 : 1000000)) {
+      this.drop(id, 1008, "Too much data.");
       return;
     }
     try {
@@ -81,8 +90,11 @@ export class RoomService {
       }
       if (message.type === "host" || message.type === "join") {
         this.enter(client, message);
-      } else if (message.type === "signal") this.signal(client, message);
-      else if (message.type === "remove-peer") {
+      } else if (message.type === "game") this.relay(client, message);
+      else if (message.type === "accept-peer") this.accept(client, message.to);
+      else if (message.type === "ping" && client.room) {
+        this.send(id, { type: "pong" });
+      } else if (message.type === "remove-peer") {
         this.removePeer(client, message.to);
       } else throw new RoomError("INVALID_MESSAGE", "Unknown room request.");
     } catch (error) {
@@ -101,6 +113,12 @@ export class RoomService {
   enter(client, message) {
     if (client.room) {
       throw new RoomError("ALREADY_JOINED", "Leave your current room first.");
+    }
+    if (message.protocol !== 2) {
+      throw new RoomError(
+        "UPGRADE_REQUIRED",
+        "Update The Last Table to v0.7.0 or newer and reload.",
+      );
     }
     const code = roomKey(message.code);
     const key = `${client.scope}/${code}`;
@@ -135,8 +153,13 @@ export class RoomService {
     room.members.add(client.id);
     client.room = key;
     if (client.timer !== null) clearTimeout(client.timer);
-    client.timer = null;
+    client.ready = room.host === client.id;
+    client.timer = client.ready ? null : setTimeout(
+      () => this.drop(client.id, 1008, "Host did not respond."),
+      15000,
+    );
     this.send(client.id, {
+      protocol: 2,
       type: "room",
       code,
       id: client.id,
@@ -147,30 +170,42 @@ export class RoomService {
     }
   }
 
-  /** @param {Client} client @param {Record<string, unknown>} message @returns {void} */
-  signal(client, message) {
+  /** @param {Client} client @param {unknown} target */
+  accept(client, target) {
     const room = client.room ? this.rooms.get(client.room) : undefined;
+    const peer = typeof target === "string"
+      ? this.clients.get(target)
+      : undefined;
     if (
-      !room || typeof message.to !== "string" || message.to === client.id ||
-      !room.members.has(message.to) ||
-      (client.id !== room.host && message.to !== room.host)
-    ) {
-      throw new RoomError("INVALID_PEER", "Invalid peer.");
-    }
-    const description = message.description;
-    const expected = client.id === room.host ? "offer" : "answer";
+      !room || room.host !== client.id || !peer || peer.id === client.id ||
+      peer.room !== client.room || peer.ready
+    ) throw new RoomError("INVALID_PEER", "Invalid peer.");
+    peer.ready = true;
+    if (peer.timer !== null) clearTimeout(peer.timer);
+    peer.timer = null;
+    this.send(peer.id, { type: "peer-ready", id: client.id });
+  }
+
+  /** @param {Client} client @param {Record<string, unknown>} message */
+  relay(client, message) {
+    const room = client.room ? this.rooms.get(client.room) : undefined;
+    const peer = typeof message.to === "string"
+      ? this.clients.get(message.to)
+      : undefined;
     if (
-      !record(description) || description.type !== expected ||
-      typeof description.sdp !== "string" ||
-      !description.sdp.length || description.sdp.length > 60000
-    ) {
-      throw new RoomError("INVALID_SIGNAL", "Invalid connection description.");
-    }
-    this.send(message.to, {
-      type: "signal",
-      from: client.id,
-      description: { type: description.type, sdp: description.sdp },
-    });
+      !room || !peer || !client.ready || !peer.ready || peer.id === client.id ||
+      peer.room !== client.room ||
+      (client.id !== room.host && peer.id !== room.host)
+    ) throw new RoomError("INVALID_PEER", "Invalid peer.");
+    const payload = message.payload;
+    const allowed = client.id === room.host
+      ? ["welcome", "state", "emote", "look", "peek", "error"]
+      : ["hello", "action", "emote", "look", "peek"];
+    if (
+      !record(payload) || typeof payload.type !== "string" ||
+      !allowed.includes(payload.type)
+    ) throw new RoomError("INVALID_GAME", "Invalid game message.");
+    this.send(peer.id, { type: "game", from: client.id, payload });
   }
 
   /** @param {Client} client @param {unknown} target @returns {void} */

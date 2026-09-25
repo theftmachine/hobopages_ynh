@@ -18,11 +18,11 @@ HoboPages turns a domain into your own static site host. Drag a built folder int
 
 Written in Deno with no third-party dependencies.
 
-**Shipped version:** 1.2.0~ynh1
+**Shipped version:** 1.3.0~ynh1
 
-## New in 1.2.0
+## New in 1.3.0
 
-Custom-key WebRTC room signalling for The Last Table v0.6.0, at `/<site>/__rooms`. Each site has its own room namespace. Keys accept 3–32 letters/numbers and ignore case. Existing visitor passwords and enabled settings protect the endpoint; changing either closes its active room sessions. Rooms are bounded, rate limited and cleared when hosts disconnect.
+Server-relayed multiplayer for The Last Table v0.7.0, at `/<site>/__rooms`. Each site has its own room namespace. Keys accept 3–32 letters/numbers and ignore case. Existing visitor passwords and enabled settings protect the endpoint; changing either closes its active room sessions. Rooms are bounded, rate limited and cleared when hosts disconnect. The server forwards gameplay only between the host and its accepted guests; no STUN/TURN setup is required. Protocol 2 requires the matching game update.
 
 Nginx forwards WebSocket upgrades on that route. No extra process, port, dependency, environment variable or persistent database is added. The shared protocol is `sources/rooms.js`, and the Deno adapter is `sources/room-socket.ts`.
 

@@ -7,7 +7,7 @@ name = "HoboPages"
 description.en = "Host static sites, uploaded straight from your browser"
 description.fr = "Hébergez des sites statiques, téléversés depuis votre navigateur"
 
-version = "1.2.0~ynh1"
+version = "1.3.0~ynh1"
 
 maintainers = ["DizzyHobo"]
 
