@@ -40,16 +40,16 @@ Deno.test("room keys, namespaces, membership and lifecycle", () => {
     const guest = client("poker");
     service.receive(
       host.id,
-      JSON.stringify({ type: "host", protocol: 2, code: "Friday" }),
+      JSON.stringify({ type: "host", protocol: 3, code: "Friday" }),
     );
     service.receive(
       other.id,
-      JSON.stringify({ type: "host", protocol: 2, code: "Friday" }),
+      JSON.stringify({ type: "host", protocol: 3, code: "Friday" }),
     );
     check(service.rooms.size === 2, "Sites must have independent rooms.");
     service.receive(
       guest.id,
-      JSON.stringify({ type: "host", protocol: 2, code: "FRIDAY" }),
+      JSON.stringify({ type: "host", protocol: 3, code: "FRIDAY" }),
     );
     check(
       guest.messages.at(-1)?.code === "KEY_TAKEN",
@@ -57,7 +57,7 @@ Deno.test("room keys, namespaces, membership and lifecycle", () => {
     );
     service.receive(
       guest.id,
-      JSON.stringify({ type: "join", protocol: 2, code: "FRIDAY" }),
+      JSON.stringify({ type: "join", protocol: 3, code: "FRIDAY" }),
     );
     check(guest.messages.at(-1)?.hostId === host.id, "Joined the wrong host.");
     service.receive(
@@ -73,7 +73,7 @@ Deno.test("room keys, namespaces, membership and lifecycle", () => {
     const replacement = client("poker");
     service.receive(
       replacement.id,
-      JSON.stringify({ type: "host", protocol: 2, code: "friday" }),
+      JSON.stringify({ type: "host", protocol: 3, code: "friday" }),
     );
     check(
       replacement.messages.at(-1)?.type === "room",

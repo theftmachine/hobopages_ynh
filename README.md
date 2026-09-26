@@ -1,3 +1,12 @@
+## 1.5.0 — Automatic poker host migration
+
+Room protocol 3 adds private recovery snapshots, ordered host election,
+reconnect identities and a 45-second inactive connection timeout. Requires
+Hobo Poker Alpha v0.15.0 on all clients. Existing TURN configuration is unchanged.
+
+See doc/HOST-MIGRATION.md for details. Recovery is in memory while the server and
+at least one eligible player remain connected; it does not survive server restart.
+
 ## 1.4.0 — Hobo Poker voice signalling
 
 Adds bounded voice connection messages to the existing authenticated room relay

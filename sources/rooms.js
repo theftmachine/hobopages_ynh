@@ -1,7 +1,7 @@
 // @ts-check
 /** @typedef {{send: (message: string) => void, close: (code: number, reason: string) => void}} Transport */
-/** @typedef {{readonly id: string, readonly scope: string, readonly transport: Transport, room: string | null, ready: boolean, bytes: number, start: number, count: number, timer: ReturnType<typeof setTimeout> | null}} Client */
-/** @typedef {{readonly host: string, readonly code: string, readonly members: Set<string>}} Room */
+/** @typedef {{readonly id: string, readonly scope: string, readonly transport: Transport, room: string | null, ready: boolean, bytes: number, start: number, count: number, timer: ReturnType<typeof setTimeout> | null, resumeKey?: string}} Client */
+/** @typedef {{host: string, readonly code: string, readonly members: Set<string>, term: number, checkpoint: any, owners: Map<number,string>, retired: Set<string>}} Room */
 
 export class RoomError extends Error {
   /** @param {string} code @param {string} message */
@@ -73,6 +73,7 @@ export class RoomService {
   receive(id, raw) {
     const client = this.clients.get(id);
     if (!client) return;
+    if(client.room){if(client.timer!==null)clearTimeout(client.timer);client.timer=setTimeout(()=>this.drop(id,1008,"Connection timed out."),45000);}
     if (Date.now() - client.start > 10000) {
       client.start = Date.now();
       client.count = 0;
@@ -101,6 +102,7 @@ export class RoomService {
       if (message.type === "host" || message.type === "join") {
         this.enter(client, message);
       } else if (message.type === "game") this.relay(client, message);
+      else if (message.type === "checkpoint") this.checkpoint(client, message);
       else if (message.type === "accept-peer") this.accept(client, message.to);
       else if (message.type === "ping" && client.room) {
         this.send(id, { type: "pong" });
@@ -124,10 +126,10 @@ export class RoomService {
     if (client.room) {
       throw new RoomError("ALREADY_JOINED", "Leave your current room first.");
     }
-    if (message.protocol !== 2) {
+    if (message.protocol !== 3) {
       throw new RoomError(
         "UPGRADE_REQUIRED",
-        "Update Hobo Poker to v0.12.0 or newer and reload.",
+        "Update Hobo Poker to v0.15.0 or newer and reload.",
       );
     }
     const code = roomKey(message.code);
@@ -145,7 +147,7 @@ export class RoomService {
           "The room service is full. Try again later.",
         );
       }
-      this.rooms.set(key, { host: client.id, code, members: new Set() });
+      this.rooms.set(key, { host: client.id, code, members: new Set(), term:1, checkpoint:null, owners:new Map(), retired:new Set() });
     }
     const room = this.rooms.get(key);
     if (!room) {
@@ -160,16 +162,20 @@ export class RoomService {
         "Table is full. All six seats are taken.",
       );
     }
+    const resumeKey=typeof message.resumeKey==='string'&&/^[a-zA-Z0-9-]{16,80}$/.test(message.resumeKey)?message.resumeKey:crypto.randomUUID();
+    if([...room.members].some(id=>this.clients.get(id)?.resumeKey===resumeKey))throw new RoomError('ALREADY_CONNECTED','This player is already connected. Close the other game tab or wait for the connection to time out.');
+    client.resumeKey=resumeKey;
     room.members.add(client.id);
     client.room = key;
     if (client.timer !== null) clearTimeout(client.timer);
     client.ready = room.host === client.id;
-    client.timer = client.ready ? null : setTimeout(
+    client.timer = client.ready ? setTimeout(()=>this.drop(client.id,1008,"Connection timed out."),45000) : setTimeout(
       () => this.drop(client.id, 1008, "Host did not respond."),
       15000,
     );
     this.send(client.id, {
-      protocol: 2,
+      protocol: 3,
+      term:room.term,
       voice: 1,
       iceServers: this.iceServers,
       type: "room",
@@ -178,7 +184,7 @@ export class RoomService {
       hostId: room.host,
     });
     if (room.host !== client.id) {
-      this.send(room.host, { type: "guest", id: client.id });
+      this.send(room.host, { type: "guest", id: client.id, seat:[...room.owners].find(([,key])=>key===resumeKey)?.[0] });
     }
   }
 
@@ -194,13 +200,14 @@ export class RoomService {
     ) throw new RoomError("INVALID_PEER", "Invalid peer.");
     peer.ready = true;
     if (peer.timer !== null) clearTimeout(peer.timer);
-    peer.timer = null;
+    peer.timer = setTimeout(()=>this.drop(peer.id,1008,"Connection timed out."),45000);
     this.send(peer.id, { type: "peer-ready", id: client.id });
   }
 
   /** @param {Client} client @param {Record<string, unknown>} message */
   relay(client, message) {
     const room = client.room ? this.rooms.get(client.room) : undefined;
+    if(room&&room.retired.has(String(message.to)))return; // Ignore actions already in flight to a departed host.
     const peer = typeof message.to === "string"
       ? this.clients.get(message.to)
       : undefined;
@@ -221,6 +228,19 @@ export class RoomService {
       if (JSON.stringify(payload).length > 26000 || !['presence','roster','signal'].includes(String(payload.kind)) || (client.id !== room.host && payload.kind === 'roster')) throw new RoomError('INVALID_GAME','Invalid voice message.');
     }
     this.send(peer.id, { type: "game", from: client.id, payload });
+  }
+
+  /** @param {Client} client @param {Record<string,any>} message */
+  checkpoint(client,message){
+    const room=client.room?this.rooms.get(client.room):undefined;
+    if(!room||room.host!==client.id||message.term!==room.term)throw new RoomError('NOT_HOST','Only the current host can save the table.');
+    const c=message.snapshot;
+    if(!record(c)||c.version!==1||!record(c.game)||!Array.isArray(c.game.players)||c.game.players.length!==6||!Array.isArray(c.seats)||c.seats.length>6||!['warehouse','backrooms'].includes(String(c.theme))||JSON.stringify(c).length>50000)throw new RoomError('INVALID_CHECKPOINT','Invalid recovery snapshot.');
+    const ids=new Set(),seats=new Set();
+    for(const entry of c.seats){if(!Array.isArray(entry)||entry.length!==2||typeof entry[0]!=='string'||!room.members.has(entry[0])||!Number.isInteger(entry[1])||entry[1]<0||entry[1]>5||ids.has(entry[0])||seats.has(entry[1]))throw new RoomError('INVALID_CHECKPOINT','Invalid recovery seats.');ids.add(entry[0]);seats.add(entry[1]);}
+    if(!ids.has(client.id))throw new RoomError('INVALID_CHECKPOINT','Host seat missing.');
+    room.checkpoint=c;
+    for(const [id,seat] of c.seats){const key=this.clients.get(id)?.resumeKey;if(key)room.owners.set(seat,key);}
   }
 
   /** @param {Client} client @param {unknown} target @returns {void} */
@@ -264,14 +284,20 @@ export class RoomService {
       this.send(room.host, { type: "peer-left", id });
       return;
     }
+    /** @type {{seats:Array<[string,number]>}|null} */
+    const checkpoint=room.checkpoint;
+    const next=[...room.members].find(member=>this.clients.get(member)?.ready&&checkpoint?.seats.some(entry=>entry[0]===member));
+    if(next&&checkpoint){
+      room.retired.add(id);room.host=next;room.term++;
+      const connected=checkpoint.seats.filter(entry=>room.members.has(entry[0]));
+      const departed=checkpoint.seats.filter(entry=>!room.members.has(entry[0])).map(entry=>entry[1]);
+      for(const member of room.members)this.send(member,{type:'host-changed',hostId:next,term:room.term,...(member===next?{snapshot:checkpoint,peers:[...room.members].filter(p=>p!==next).map(p=>({id:p,seat:connected.find(entry=>entry[0]===p)?.[1]})),departed}: {})});
+      return;
+    }
     this.rooms.delete(/** @type {string} */ (client.room));
     for (const member of room.members) {
-      this.send(member, {
-        type: "error",
-        code: "HOST_LEFT",
-        message: "The host left. This room has closed.",
-      });
-      this.drop(member, 1000, "Host left.");
+      this.send(member, {type:'error',code:'HOST_LEFT',message:'No connected player can recover this table. Create a new room.'});
+      this.drop(member,1000,'Room ended.');
     }
   }
 

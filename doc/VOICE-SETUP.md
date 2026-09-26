@@ -1,15 +1,14 @@
-# Hobo Poker Alpha v0.14.0 — spatial voice
+# Hobo Poker Alpha v0.15.0 — spatial voice
 
 ## Install
 
-1. Upgrade HoboPages using the included `hobopages_ynh-1.4.0.tar.gz` package.
-2. Upload the complete `Hobo-Poker-web-v0.14.0.zip` to your game site.
-3. Reload the game on every device. The menu and HUD must show Alpha v0.14.0.
+1. Upgrade HoboPages using the included `hobopages_ynh-1.5.0.tar.gz` package.
+2. Upload the complete `Hobo-Poker-web-v0.15.0.zip` to your game site.
+3. Reload the game on every device. The menu and HUD must show Alpha v0.15.0.
 4. Create or join a multiplayer room, press JOIN VOICE, then allow the microphone.
    Each friend joins voice separately. Voice is off until they choose to join.
 
-HoboPages 1.3.0 still supports poker with this game version, but voice is disabled
-until the server is upgraded. The Node development server also supports voice.
+This game version requires HoboPages 1.5.0 for room protocol 3 and host recovery. The Node development server also supports voice.
 
 ## Controls and behavior
 
