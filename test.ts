@@ -140,6 +140,15 @@ section("Auth");
   check("bad password rejected", bad.status === 401, `got ${bad.status}`);
   cookie = "";
 
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const retry = await api("/__api/login", {
+      method: "POST",
+      json: { password: "still-wrong" },
+    });
+    check(`wrong password retry ${attempt + 1} has no lockout`, retry.status === 401);
+    check(`wrong password retry ${attempt + 1} issues no session`, !retry.headers.has("set-cookie"));
+  }
+
   const noHeader = await fetch(`${BASE}/__api/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },

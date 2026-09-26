@@ -1,3 +1,7 @@
+## 1.5.1 — Immediate password retries
+
+Removed the admin login lockout after incorrect passwords. You can retry immediately, and a correct password signs in even after repeated failures. Upgrade restarts the service and clears any existing in-memory lockout.
+
 ## 1.5.0 — Automatic poker host migration
 
 Room protocol 3 adds private recovery snapshots, ordered host election,

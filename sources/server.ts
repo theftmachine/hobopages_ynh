@@ -53,15 +53,6 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
-function clientIp(req: Request, info: Deno.ServeHandlerInfo): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  const addr = info.remoteAddr;
-  return addr.transport === "tcp" || addr.transport === "udp"
-    ? addr.hostname
-    : "local";
-}
-
 async function readJson(req: Request): Promise<Record<string, unknown>> {
   const text = await req.text();
   if (!text) return {};
@@ -75,43 +66,6 @@ async function readJson(req: Request): Promise<Record<string, unknown>> {
 }
 
 // ---------------------------------------------------------------------------
-// Login throttling
-// ---------------------------------------------------------------------------
-
-class LoginThrottle {
-  private attempts = new Map<string, { count: number; resetAt: number }>();
-  constructor(private limit = 10, private windowMs = 15 * 60 * 1000) {}
-
-  check(ip: string): boolean {
-    const now = Date.now();
-    const entry = this.attempts.get(ip);
-    if (!entry || now > entry.resetAt) return true;
-    return entry.count < this.limit;
-  }
-
-  record(ip: string): void {
-    const now = Date.now();
-    const entry = this.attempts.get(ip);
-    if (!entry || now > entry.resetAt) {
-      this.attempts.set(ip, { count: 1, resetAt: now + this.windowMs });
-      return;
-    }
-    entry.count++;
-  }
-
-  clear(ip: string): void {
-    this.attempts.delete(ip);
-  }
-
-  sweep(): void {
-    const now = Date.now();
-    for (const [ip, entry] of this.attempts) {
-      if (now > entry.resetAt) this.attempts.delete(ip);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Application
 // ---------------------------------------------------------------------------
 
@@ -120,7 +74,6 @@ export class HoboPages {
   private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
   private storage: Storage;
   private deploys: DeployManager;
-  private throttle = new LoginThrottle();
   private secret!: CryptoKey;
   private adminHash!: Uint8Array;
   private ui = "";
@@ -142,7 +95,6 @@ export class HoboPages {
     await this.deploys.cleanupStale(0);
 
     this.maintenanceTimer = setInterval(() => {
-      this.throttle.sweep();
       this.deploys.cleanupStale().catch(() => console.error({ event: "stale-upload-cleanup-failed" }));
     }, 30 * 60 * 1000);
   }
@@ -186,7 +138,7 @@ export class HoboPages {
         });
       }
       if (url.pathname.startsWith("/__api/")) {
-        return await this.handleApi(req, url, info);
+        return await this.handleApi(req, url);
       }
       if (url.pathname === "/" || url.pathname === "/index.html") {
         return new Response(this.ui, {
@@ -241,7 +193,6 @@ export class HoboPages {
   private async handleApi(
     req: Request,
     url: URL,
-    info: Deno.ServeHandlerInfo,
   ): Promise<Response> {
     const path = url.pathname.slice("/__api".length);
 
@@ -252,18 +203,12 @@ export class HoboPages {
     }
 
     if (path === "/login" && req.method === "POST") {
-      const ip = clientIp(req, info);
-      if (!this.throttle.check(ip)) {
-        return errorJson("Too many attempts. Try again in 15 minutes.", 429);
-      }
       const body = await readJson(req);
       const password = typeof body.password === "string" ? body.password : "";
       const candidate = await sha256(password);
       if (!timingSafeEqual(candidate, this.adminHash)) {
-        this.throttle.record(ip);
         return errorJson("That password is not right.", 401);
       }
-      this.throttle.clear(ip);
       const maxAge = this.config.sessionHours * 3600;
       const token = await signSession(this.secret, Date.now() + maxAge * 1000);
       return json({ ok: true }, 200, {
