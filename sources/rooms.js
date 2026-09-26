@@ -29,6 +29,16 @@ function record(value) {
 }
 
 export class RoomService {
+  /** @param {Array<RTCIceServer>} iceServers */
+  constructor(iceServers = [{urls: 'stun:stun.l.google.com:19302'}]) {
+    if (!Array.isArray(iceServers) || iceServers.length > 8 || iceServers.some(s => {
+      if (!s || typeof s !== 'object') return true;
+      const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+      return !urls.length || urls.length > 8 || urls.some(u => typeof u !== 'string' || u.length > 512 || !/^(stun|stuns|turn|turns):[^\s]+$/.test(u)) || (urls.some(u => /^turns?:/.test(u)) && (typeof s.username !== 'string' || !s.username || typeof s.credential !== 'string' || !s.credential));
+    })) throw new Error('Invalid HOBOPAGES_VOICE_ICE_SERVERS: expected an ICE server array; TURN requires username and credential.');
+    this.iceServers = iceServers;
+  }
+
   /** @type {Map<string, Client>} */
   clients = new Map();
   /** @type {Map<string, Room>} */
@@ -117,7 +127,7 @@ export class RoomService {
     if (message.protocol !== 2) {
       throw new RoomError(
         "UPGRADE_REQUIRED",
-        "Update The Last Table to v0.7.0 or newer and reload.",
+        "Update Hobo Poker to v0.12.0 or newer and reload.",
       );
     }
     const code = roomKey(message.code);
@@ -160,6 +170,8 @@ export class RoomService {
     );
     this.send(client.id, {
       protocol: 2,
+      voice: 1,
+      iceServers: this.iceServers,
       type: "room",
       code,
       id: client.id,
@@ -199,12 +211,15 @@ export class RoomService {
     ) throw new RoomError("INVALID_PEER", "Invalid peer.");
     const payload = message.payload;
     const allowed = client.id === room.host
-      ? ["welcome", "state", "emote", "look", "peek", "error"]
-      : ["hello", "action", "emote", "look", "peek"];
+      ? ["welcome", "state", "emote", "look", "peek", "error", "voice"]
+      : ["hello", "action", "emote", "look", "peek", "voice"];
     if (
       !record(payload) || typeof payload.type !== "string" ||
       !allowed.includes(payload.type)
     ) throw new RoomError("INVALID_GAME", "Invalid game message.");
+    if (payload.type === 'voice') {
+      if (JSON.stringify(payload).length > 26000 || !['presence','roster','signal'].includes(String(payload.kind)) || (client.id !== room.host && payload.kind === 'roster')) throw new RoomError('INVALID_GAME','Invalid voice message.');
+    }
     this.send(peer.id, { type: "game", from: client.id, payload });
   }
 

@@ -1,7 +1,7 @@
 // HoboPages — core: config, storage, auth, path safety, zip, rewriting.
 // Deno 2.x. No third-party dependencies.
 
-export const VERSION = "1.3.0";
+export const VERSION = "1.4.0";
 
 // ---------------------------------------------------------------------------
 // Config

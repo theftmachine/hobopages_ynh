@@ -1,6 +1,6 @@
 {
   "name": "hobopages",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "exports": "./sources/server.ts",
   "tasks": {
     "test": "deno run -A test.ts && deno run -A test-retention.ts && deno test test-rooms.ts",

@@ -1,3 +1,13 @@
+## 1.4.0 — Hobo Poker voice signalling
+
+Adds bounded voice connection messages to the existing authenticated room relay
+and advertises voice support to clients. Poker protocol 2 remains compatible.
+Raw microphone audio uses WebRTC rather than the Deno WebSocket service.
+
+Optional `HOBOPAGES_VOICE_ICE_SERVERS` accepts a JSON RTCIceServer array. Defaults
+to Google's STUN server. TURN credentials must be provided for relay access;
+a TURN service is not included. See `doc/VOICE-SETUP.md` for deployment details.
+
 # HoboPages for YunoHost
 
 [![Install HoboPages with YunoHost](https://install-app.yunohost.org/install-with-yunohost.svg)](https://install-app.yunohost.org/?app=hobopages)

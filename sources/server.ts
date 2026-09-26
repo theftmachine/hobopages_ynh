@@ -116,7 +116,7 @@ class LoginThrottle {
 // ---------------------------------------------------------------------------
 
 export class HoboPages {
-  private rooms = new RoomService();
+  private rooms = new RoomService(JSON.parse(Deno.env.get("HOBOPAGES_VOICE_ICE_SERVERS") || '[{"urls":"stun:stun.l.google.com:19302"}]'));
   private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
   private storage: Storage;
   private deploys: DeployManager;

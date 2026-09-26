@@ -46,6 +46,7 @@ async function api(
 ): Promise<{ status: number; body: any; headers: Headers }> {
   const headers = new Headers(init.headers);
   headers.set("x-hobopages", "1");
+  headers.set("connection", "close");
   if (cookie) headers.set("cookie", cookie);
   let body = init.body;
   if (init.json !== undefined) {
